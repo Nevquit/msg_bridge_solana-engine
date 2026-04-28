@@ -1,0 +1,6 @@
+solana
+solders
+base58
+mnemonic
+requests
+web3

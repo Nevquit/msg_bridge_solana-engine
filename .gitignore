@@ -1,0 +1,8 @@
+.venv
+__pycache__
+*.pyc
+current_wallets.json
+wallets/
+node_modules/
+dist/
+.env

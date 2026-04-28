@@ -1,0 +1,24 @@
+{
+    "devnet": {
+        "bridge_program_id": "E3iKvJgGNycXrmsh2aryY25z29PpU4dvo4CBuXCKQiGB",
+        "feeReceiver": "2Yx49qE11EmZiS5GoZ8kUTXi8AGBVnLdnG2dxF3XyPig",
+        "admin_board_program_id": "7jYCM8k5Nvwg5vyPpLk2yjivQhexPDMXuK8CSbUKqL6B",
+        "fee_config_program_id": "dFYBRAFvZKq9F4mYGkLQu8DbfZRFrmi5dNSTDfwC3a8",
+        "token_program_id": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "associated_token_program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+        "system_program_id": "11111111111111111111111111111111",
+        "msg_bridge_program_id": "4qyZxqVyE4JsjoW3jgQFqcmuygUUM1hMNUASobcabgC8",
+        "wmb_program_id": "9J17hVJXCcMsD1E7Kv5yNKEgQAhwcu4NvtPQvXkgesiV"
+    },
+    "mainnet-beta": {
+        "bridge_program_id": "E3iKvJgGNycXrmsh2aryY25z29PpU4dvo4CBuXCKQiGB",
+        "feeReceiver": "CXxYYAtiUhdUagJNQ6UAB9gmHdxeujUPdn4iRg9HeuSz",
+        "admin_board_program_id": "7jYCM8k5Nvwg5vyPpLk2yjivQhexPDMXuK8CSbUKqL6B",
+        "fee_config_program_id": "dFYBRAFvZKq9F4mYGkLQu8DbfZRFrmi5dNSTDfwC3a8",
+        "token_program_id": "TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA",
+        "associated_token_program_id": "ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL",
+        "system_program_id": "11111111111111111111111111111111",
+        "msg_bridge_program_id": "",
+        "wmb_program_id": ""
+    }
+}
