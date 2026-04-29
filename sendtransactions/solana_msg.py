@@ -37,7 +37,11 @@ def encode_lock_token_data(peer_chain_id, peer_app_address_hex, to_user_hex, amo
     data += struct.pack("<Q", int(gas_limit))
     return data
 
-def msg_cross_chain(sender_kp, to_chain_id, to_contract, to_user, amount, token_mint_hex, network, gas_limit=80000, **kwargs):
+def solana_to_evm_msg(sender_kp, to_chain_id, to_contract, to_user, amount, token_mint_hex, network, gas_limit=80000, **kwargs):
+    """
+    Solana to EVM message cross-chain transaction.
+    Refactored from msg_cross_chain.
+    """
     try:
         conf = get_contracts(network)
         msg_bridge_prog_id = conf.get('msg_bridge_program_id', "4qyZxqVyE4JsjoW3jgQFqcmuygUUM1hMNUASobcabgC8")
