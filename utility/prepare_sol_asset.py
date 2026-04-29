@@ -400,26 +400,60 @@ class PrepareAssets:
         _, main_wallet, batch_wallets = evm_wallet_info
 
         rpc_url = self.evm_url
+        tokens_to_sweep = []
         if case_file:
             cases = GetTestCase(case_file).get_test_cases()
             if cases:
                 rpc_url = cases[0].get('node_url', self.evm_url)
+                tokens_to_sweep = list(set(c['from_token_address'] for c in cases if c['from_token_address'].startswith('0x')))
 
         w3 = Web3(Web3.HTTPProvider(rpc_url))
         dest_addr = Web3.to_checksum_address(destination_address)
 
-        print(f"🧹 Sweeping EVM assets to {dest_addr}...")
-        for i, wallet in enumerate(batch_wallets):
-            acc = Account.from_key(wallet['private_key'])
-            balance = w3.eth.get_balance(acc.address)
-            gas_price = w3.eth.gas_price
-            gas_limit = 21000
-            fee = gas_price * gas_limit
+        # Include main wallet in sweep
+        all_wallets = [main_wallet] + batch_wallets
 
-            if balance > fee:
+        print(f"🧹 Sweeping all EVM assets to {dest_addr}...")
+        for wallet in all_wallets:
+            acc = Account.from_key(wallet['private_key'])
+            nonce = w3.eth.get_transaction_count(acc.address)
+            print(f"  - Checking wallet {acc.address[:8]}...")
+
+            # 1. Sweep Tokens
+            for token_addr in tokens_to_sweep:
                 try:
+                    abi = [{"constant": True, "inputs": [{"name": "_owner", "type": "address"}], "name": "balanceOf", "outputs": [{"name": "balance", "type": "uint256"}], "type": "function"},
+                           {"constant": False, "inputs": [{"name": "_to", "type": "address"}, {"name": "_value", "type": "uint256"}], "name": "transfer", "outputs": [{"name": "", "type": "bool"}], "type": "function"}]
+                    contract = w3.eth.contract(address=Web3.to_checksum_address(token_addr), abi=abi)
+                    t_bal = contract.functions.balanceOf(acc.address).call()
+
+                    if t_bal > 0:
+                        print(f"    * Sweeping {t_bal} of token {token_addr[:8]}...")
+                        tx = contract.functions.transfer(dest_addr, t_bal).build_transaction({
+                            'from': acc.address,
+                            'nonce': nonce,
+                            'gas': 60000,
+                            'gasPrice': w3.eth.gas_price,
+                            'chainId': w3.eth.chain_id
+                        })
+                        signed = w3.eth.account.sign_transaction(tx, acc.key)
+                        tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
+                        print(f"      ✅ Success! Hash: 0x{tx_hash.hex()}")
+                        w3.eth.wait_for_transaction_receipt(tx_hash)
+                        nonce += 1
+                except Exception as e:
+                    print(f"    ⚠️ Token sweep fail for {token_addr[:8]}: {e}")
+
+            # 2. Sweep Native ETH
+            try:
+                balance = w3.eth.get_balance(acc.address)
+                gas_price = w3.eth.gas_price
+                gas_limit = 21000
+                fee = gas_price * gas_limit
+
+                if balance > fee:
                     tx = {
-                        'nonce': w3.eth.get_transaction_count(acc.address),
+                        'nonce': nonce,
                         'to': dest_addr,
                         'value': balance - fee,
                         'gas': gas_limit,
@@ -428,8 +462,8 @@ class PrepareAssets:
                     }
                     signed = w3.eth.account.sign_transaction(tx, acc.key)
                     tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
-                    print(f"  - Swept {w3.from_wei(balance-fee, 'ether')} ETH from {acc.address[:8]}... Hash: 0x{tx_hash.hex()}")
-                except Exception as e: print(f"  - Sweep Fail for {acc.address[:8]}: {e}")
+                    print(f"    * Swept {w3.from_wei(balance-fee, 'ether')} ETH. Hash: 0x{tx_hash.hex()}")
+            except Exception as e: print(f"    ⚠️ ETH sweep fail: {e}")
 
     def format_float(self, val):
         return f"{val:.9f}".rstrip('0').rstrip('.')
