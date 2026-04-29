@@ -240,6 +240,7 @@ def run_evm_to_sol(case_file):
                     continue
 
             remote = Erc20TokenRemote(case['node_url'], case['from_token_address'])
+            # Match the JS example: to_address (ATA) is passed as bytes
             to_bytes = case['to_address'].encode('utf-8')
 
             print(f"{prefix} Sending {case['cross_amount(eth)']} {case['token_name']} to Solana {case['to_address'][:8]}...")

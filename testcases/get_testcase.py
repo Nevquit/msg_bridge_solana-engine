@@ -15,8 +15,12 @@ class GetTestCase:
                 reader = csv.DictReader(f)
                 for row in reader:
                     # Parse relevant fields
-                    row['token_pair_id'] = int(row['token_pair_id'])
-                    row['from_token_decimals'] = int(row['from_token_decimals'])
+                    try:
+                        row['token_pair_id'] = int(row.get('token_pair_id', 0))
+                    except:
+                        row['token_pair_id'] = 0
+
+                    row['from_token_decimals'] = int(row.get('from_token_decimals', 18))
 
                     # Parse destination chain ID
                     to_chain_id_str = row.get('to_chain_slip44_id', '2153201998')
@@ -33,7 +37,10 @@ class GetTestCase:
                     row['amount_raw'] = int(cross_amount_eth * (10 ** row['from_token_decimals']))
 
                     # Network fee in raw units (usually lamports)
-                    row['network_fee_raw'] = int(row['network_fee'])
+                    try:
+                        row['network_fee_raw'] = int(row.get('network_fee', 0))
+                    except:
+                        row['network_fee_raw'] = 0
 
                     test_cases.append(row)
         except Exception as e:
