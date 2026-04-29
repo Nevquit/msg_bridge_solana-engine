@@ -296,7 +296,27 @@ class PrepareAssets:
         main_addr = Web3.to_checksum_address(main_wallet['address'])
         balance_wei = w3.eth.get_balance(main_addr)
         print(f"MAIN WALLET (EVM): {main_addr}")
-        print(f"  Balance: {w3.from_wei(balance_wei, 'ether')} ETH")
+        print(f"  ETH Balance: {w3.from_wei(balance_wei, 'ether')} ETH")
+
+        # Main Wallet Token Balances
+        token_needs = {}
+        for c in cases:
+            if c['from_token_address'].startswith('0x'):
+                mint = c['from_token_address']
+                token_needs[mint] = token_needs.get(mint, 0) + c['amount_raw']
+
+        for mint, needed_raw in token_needs.items():
+            try:
+                case = next(c for c in cases if c['from_token_address'] == mint)
+                abi = [{"constant": True, "inputs": [{"name": "_owner", "type": "address"}], "name": "balanceOf", "outputs": [{"name": "balance", "type": "uint256"}], "type": "function"}]
+                contract = w3.eth.contract(address=Web3.to_checksum_address(mint), abi=abi)
+                t_bal = contract.functions.balanceOf(main_addr).call()
+                t_bal_f = t_bal / (10**case['from_token_decimals'])
+                t_needed_f = needed_raw / (10**case['from_token_decimals'])
+                t_status = "✅" if t_bal >= needed_raw else "❌"
+                print(f"  {t_status} {case['token_name']}: {self.format_float(t_bal_f)} (Need: {self.format_float(t_needed_f)})")
+            except Exception as e:
+                print(f"  ⚠️ Error checking {mint}: {e}")
 
         # 2. Batch Addresses Check
         print("-" * 80)
