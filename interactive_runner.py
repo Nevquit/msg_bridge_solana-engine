@@ -10,20 +10,28 @@ from spl.token.constants import TOKEN_PROGRAM_ID
 from spl.token.instructions import get_associated_token_address, create_associated_token_account, transfer_checked, TransferCheckedParams
 
 from utility.prepare_sol_asset import PrepareSOLAsset
-from utility.interaction_utils import get_network, get_direction, get_case_file, get_wallet_info
+from utility.interaction_utils import get_network, get_direction, get_case_file, get_solana_wallet_info, get_evm_wallet_info
 from sendtransactions.sendtransaction import sign_and_send_transaction, build_transfer_tx, hex_to_pubkey, get_contracts
 from sendtransactions.solana_msg import solana_to_evm_msg
 from sendtransactions.evm_msg import Erc20TokenRemote
 from testcases.get_testcase import GetTestCase
 
-def check_wallet_coverage(case_file):
+def check_wallet_coverage(case_file, direction):
     cases = GetTestCase(case_file).get_test_cases()
-    res = get_wallet_info()
-    if not res: return False
-    batch_wallets = res[2]
-    if len(batch_wallets) < len(cases):
-        print(f"❌ Error: Need {len(cases)} addresses, have {len(batch_wallets)}.")
-        return False
+
+    if direction == "sol_to_evm" or direction == "evm_to_sol":
+        # We generally need both for cross-chain, but let's check based on what's available
+        sol_res = get_solana_wallet_info()
+        evm_res = get_evm_wallet_info()
+
+        if not sol_res or not evm_res:
+            print("❌ Error: Wallets not created yet. Please use option 1 first.")
+            return False
+
+        batch_wallets = sol_res[2] if direction == "sol_to_evm" else evm_res[2]
+        if len(batch_wallets) < len(cases):
+            print(f"❌ Error: Need {len(cases)} addresses, have {len(batch_wallets)}.")
+            return False
     return True
 
 def main_menu(direction, case_file, network):
@@ -50,14 +58,15 @@ def main_menu(direction, case_file, network):
             asset_preparer.prepare_assets(create=True, batch_address_count=num_cases)
 
         elif choice == '2':
-            if check_wallet_coverage(case_file):
-                asset_preparer.check_all_balances(case_file, get_wallet_info()[:3])
+            if check_wallet_coverage(case_file, direction):
+                asset_preparer.check_all_balances(case_file, get_solana_wallet_info()[:3])
 
         elif choice == '3':
-            if not check_wallet_coverage(case_file): continue
-            _, main_wallet, batch_wallets, _ = get_wallet_info()
-            main_sol = main_wallet['solana']
-            main_kp = Keypair.from_bytes(binascii.unhexlify(main_sol['private_key']))
+            if not check_wallet_coverage(case_file, direction): continue
+            res = get_solana_wallet_info()
+            if not res: continue
+            _, main_wallet, batch_wallets, _ = res
+            main_kp = Keypair.from_bytes(binascii.unhexlify(main_wallet['private_key']))
 
             # Pre-check Main Wallet SOL
             main_bal_res = service.get_balance(main_kp.pubkey())
@@ -81,7 +90,7 @@ def main_menu(direction, case_file, network):
             for i, wallet in enumerate(batch_wallets):
                 if i >= len(cases): break
                 case = cases[i]
-                addr_str = wallet['solana']['address']
+                addr_str = wallet['address']
                 addr = Pubkey.from_string(addr_str)
 
                 # SOL: 0.015 SOL buffer
@@ -126,11 +135,11 @@ def main_menu(direction, case_file, network):
                 run_evm_to_sol(case_file)
 
         elif choice == '5':
-            res = get_wallet_info()
+            res = get_solana_wallet_info()
             payer_kp = None
             if res:
-                main_sol = res[1]['solana']
-                payer_kp = Keypair.from_bytes(binascii.unhexlify(main_sol['private_key']))
+                main_wallet = res[1]
+                payer_kp = Keypair.from_bytes(binascii.unhexlify(main_wallet['private_key']))
             asset_preparer.sweep_assets(input("👉 Destination Solana Address: ").strip(), payer_kp=payer_kp)
 
         elif choice == '6':
@@ -140,9 +149,11 @@ def main_menu(direction, case_file, network):
             sys.exit(0)
 
 def run_sol_to_evm(case_file, network, service):
-    if not check_wallet_coverage(case_file): return
+    if not check_wallet_coverage(case_file, "sol_to_evm"): return
+    res = get_solana_wallet_info()
+    if not res: return
+    _, _, batch_wallets, _ = res
     cases = GetTestCase(case_file).get_test_cases()
-    _, _, batch_wallets, _ = get_wallet_info()
 
     try:
         tps = float(input("👉 Enter TPS (e.g. 1.0): ").strip())
@@ -152,9 +163,9 @@ def run_sol_to_evm(case_file, network, service):
 
     def process_case(idx, wallet, case):
         prefix = f"[{idx+1}/{len(cases)}]"
-        kp_hex = wallet['solana']['private_key']
+        kp_hex = wallet['private_key']
         batch_kp = Keypair.from_bytes(binascii.unhexlify(kp_hex))
-        addr_pub = Pubkey.from_string(wallet['solana']['address'])
+        addr_pub = Pubkey.from_string(wallet['address'])
 
         try:
             tx, error = solana_to_evm_msg(
@@ -191,8 +202,11 @@ def run_sol_to_evm(case_file, network, service):
         for future in concurrent.futures.as_completed(futures): print(future.result())
 
 def run_evm_to_sol(case_file):
+    if not check_wallet_coverage(case_file, "evm_to_sol"): return
+    res = get_evm_wallet_info()
+    if not res: return
+    _, _, batch_wallets, _ = res
     cases = GetTestCase(case_file).get_test_cases()
-    _, _, batch_wallets, _ = get_wallet_info()
 
     use_batch = input("👉 Use batch wallets private keys? (y/n): ").strip().lower() == 'y'
 
@@ -206,7 +220,7 @@ def run_evm_to_sol(case_file):
         try:
             if use_batch:
                 if idx < len(batch_wallets):
-                    priv_key = batch_wallets[idx]['evm']['private_key']
+                    priv_key = batch_wallets[idx]['private_key']
                 else:
                     print(f"{prefix} ⚠️ No batch wallet for this case, skipping.")
                     continue

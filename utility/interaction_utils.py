@@ -40,13 +40,24 @@ def get_case_file(direction):
             return os.path.join(direction, files[int(choice)-1])
         print("❌ Invalid selection.")
 
-def get_wallet_info():
-    if not os.path.exists("current_wallets.json"): return None
+def get_solana_wallet_info():
+    if not os.path.exists("current_solana_wallets.json"): return None
     try:
-        with open("current_wallets.json", 'r') as f: data_list = json.load(f)
+        with open("current_solana_wallets.json", 'r') as f: data_list = json.load(f)
         if not data_list: return None
         data = data_list[0]
         return data['wallet_name'], data['main_wallet'], data.get('batch_wallets', []), data
     except Exception as e:
-        print(f"❌ Error reading current_wallets.json: {e}")
+        print(f"❌ Error reading current_solana_wallets.json: {e}")
+        return None
+
+def get_evm_wallet_info():
+    if not os.path.exists("current_evm_wallets.json"): return None
+    try:
+        with open("current_evm_wallets.json", 'r') as f: data_list = json.load(f)
+        if not data_list: return None
+        data = data_list[0]
+        return data['wallet_name'], data['main_wallet'], data.get('batch_wallets', []), data
+    except Exception as e:
+        print(f"❌ Error reading current_evm_wallets.json: {e}")
         return None
