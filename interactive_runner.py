@@ -86,9 +86,10 @@ def main_menu(direction, case_file, network):
                     print(f"    ✅ Batch Sent! Signature: {sig}")
                     print("    ⏳ Waiting for confirmation...")
                     from solana.rpc.commitment import Confirmed
+                    from solders.signature import Signature
                     try:
                         # Wait for confirmation before proceeding
-                        service.confirm_transaction(sig, commitment=Confirmed)
+                        service.confirm_transaction(Signature.from_string(sig), commitment=Confirmed)
                         print("    ✅ Transaction confirmed!")
                     except Exception as e:
                         print(f"    ⚠️ Confirmation wait error: {e}")
