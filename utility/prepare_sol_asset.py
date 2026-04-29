@@ -26,18 +26,35 @@ class PrepareAssets:
             self.sol_url = "https://api.devnet.solana.com"
             self.evm_url = "https://gwan-ssl.wandevs.org:46891"
 
-    def prepare_assets(self, create=True, batch_address_count=0):
+    def prepare_assets(self, create=True):
         if not create: return
+
+        # Determine counts for Solana and EVM based on test cases
+        def get_max_cases(direction):
+            folder = os.path.join("testcases", direction)
+            if not os.path.exists(folder): return 0
+            max_c = 0
+            for f in os.listdir(folder):
+                if f.endswith('.csv'):
+                    try:
+                        cases = GetTestCase(os.path.join(direction, f)).get_test_cases()
+                        max_c = max(max_c, len(cases))
+                    except: pass
+            return max_c
+
+        sol_count = get_max_cases("sol_to_evm")
+        evm_count = get_max_cases("evm_to_sol")
+
         mnemo = Mnemonic("english")
         words = mnemo.generate(strength=128)
 
         # Solana Wallets
         main_sol_kp = Keypair()
-        batch_sol_kps = [Keypair() for _ in range(batch_address_count)]
+        batch_sol_kps = [Keypair() for _ in range(sol_count)]
 
         # EVM Wallets (Deriving from same mnemonic for "linkage")
         main_evm_acc = Account.from_mnemonic(words, account_path="m/44'/60'/0'/0/0")
-        batch_evm_accs = [Account.from_mnemonic(words, account_path=f"m/44'/60'/0'/0/{i+1}") for i in range(batch_address_count)]
+        batch_evm_accs = [Account.from_mnemonic(words, account_path=f"m/44'/60'/0'/0/{i+1}") for i in range(evm_count)]
 
         wallet_set_id = os.urandom(4).hex()
 
@@ -53,7 +70,7 @@ class PrepareAssets:
                 {
                     "address": str(batch_sol_kps[i].pubkey()),
                     "private_key": binascii.hexlify(bytes(batch_sol_kps[i])).decode()
-                } for i in range(batch_address_count)
+                } for i in range(sol_count)
             ]
         }
 
@@ -69,7 +86,7 @@ class PrepareAssets:
                 {
                     "address": batch_evm_accs[i].address,
                     "private_key": batch_evm_accs[i].key.hex()
-                } for i in range(batch_address_count)
+                } for i in range(evm_count)
             ]
         }
 
@@ -89,9 +106,8 @@ class PrepareAssets:
             json.dump(evm_wallet_data, f, indent=4)
 
         print(f"✅ Created main wallets:")
-        print(f"   SOL: {main_sol_kp.pubkey()}")
-        print(f"   EVM: {main_evm_acc.address}")
-        print(f"✅ Batch count: {batch_address_count}")
+        print(f"   SOL: {main_sol_kp.pubkey()} (Batch: {sol_count})")
+        print(f"   EVM: {main_evm_acc.address} (Batch: {evm_count})")
 
     # --- Solana Specific Logic ---
 
