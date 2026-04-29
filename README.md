@@ -50,7 +50,7 @@ This repository contains an interactive tool for running cross-chain message tra
 3. Select the bridge direction (Solana -> EVM or EVM -> Solana).
 4. Select a test case file from the listed options.
 5. Use the menu to:
-   - **Create Wallets**: Generates a main wallet and batch wallets for testing. Credentials are saved in `current_wallets.json`.
+   - **Create Wallets**: Generates a main wallet and batch wallets for testing. Credentials are saved in `current_solana_wallets.json` and `current_evm_wallets.json`.
    - **Check Balances**: Verifies SOL and token balances for all generated wallets.
    - **Distribute Funds**: Sends SOL and tokens from the main wallet to batch wallets.
    - **Run Transactions**: Executes the cross-chain message transactions.

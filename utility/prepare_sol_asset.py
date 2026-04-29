@@ -295,10 +295,12 @@ class PrepareSOLAsset:
                     print(f"    ⚠️ Token sweep failed for {addr_str[:8]}: {e}")
 
                 try:
-                    bal_res = service.get_balance(kp.pubkey())
+                    from solana.rpc.commitment import Confirmed
+                    bal_res = service.get_balance(kp.pubkey(), commitment=Confirmed)
                     balance = bal_res.value
-                    buffer = 5000
-                    fee_estimate = 0 if payer_kp else 5000
+                    # Increase buffer to 0.001 SOL to handle pending fees or rent-related issues
+                    buffer = 1000000
+                    fee_estimate = 5000
 
                     if balance > (fee_estimate + buffer):
                         sweep_amount = balance - fee_estimate - buffer
