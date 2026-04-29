@@ -35,41 +35,54 @@ class PrepareSOLAsset:
         main_evm_acc = Account.from_mnemonic(words, account_path="m/44'/60'/0'/0/0")
         batch_evm_accs = [Account.from_mnemonic(words, account_path=f"m/44'/60'/0'/0/{i+1}") for i in range(batch_address_count)]
 
-        wallet_data = {
-            "wallet_name": f"key_set_{os.urandom(4).hex()}",
+        wallet_set_id = os.urandom(4).hex()
+
+        sol_wallet_data = {
+            "wallet_name": f"solana_key_set_{wallet_set_id}",
             "mnemonic": words,
             "address_type": "Enterprise",
             "main_wallet": {
-                "solana": {
-                    "address": str(main_sol_kp.pubkey()),
-                    "private_key": binascii.hexlify(bytes(main_sol_kp)).decode()
-                },
-                "evm": {
-                    "address": main_evm_acc.address,
-                    "private_key": main_evm_acc.key.hex()
-                }
+                "address": str(main_sol_kp.pubkey()),
+                "private_key": binascii.hexlify(bytes(main_sol_kp)).decode()
             },
             "batch_wallets": [
                 {
-                    "solana": {
-                        "address": str(batch_sol_kps[i].pubkey()),
-                        "private_key": binascii.hexlify(bytes(batch_sol_kps[i])).decode()
-                    },
-                    "evm": {
-                        "address": batch_evm_accs[i].address,
-                        "private_key": batch_evm_accs[i].key.hex()
-                    }
+                    "address": str(batch_sol_kps[i].pubkey()),
+                    "private_key": binascii.hexlify(bytes(batch_sol_kps[i])).decode()
                 } for i in range(batch_address_count)
             ]
         }
 
-        with open("current_wallets.json", "w") as f:
-            json.dump([wallet_data], f, indent=4)
+        evm_wallet_data = {
+            "wallet_name": f"evm_key_set_{wallet_set_id}",
+            "mnemonic": words,
+            "address_type": "Enterprise",
+            "main_wallet": {
+                "address": main_evm_acc.address,
+                "private_key": main_evm_acc.key.hex()
+            },
+            "batch_wallets": [
+                {
+                    "address": batch_evm_accs[i].address,
+                    "private_key": batch_evm_accs[i].key.hex()
+                } for i in range(batch_address_count)
+            ]
+        }
+
+        with open("current_solana_wallets.json", "w") as f:
+            json.dump([sol_wallet_data], f, indent=4)
+        with open("current_evm_wallets.json", "w") as f:
+            json.dump([evm_wallet_data], f, indent=4)
 
         if not os.path.exists("wallets"): os.makedirs("wallets")
-        wallet_file = os.path.join("wallets", f"{wallet_data['wallet_name']}.json")
-        with open(wallet_file, "w") as f:
-            json.dump(wallet_data, f, indent=4)
+
+        sol_wallet_file = os.path.join("wallets", f"{sol_wallet_data['wallet_name']}.json")
+        with open(sol_wallet_file, "w") as f:
+            json.dump(sol_wallet_data, f, indent=4)
+
+        evm_wallet_file = os.path.join("wallets", f"{evm_wallet_data['wallet_name']}.json")
+        with open(evm_wallet_file, "w") as f:
+            json.dump(evm_wallet_data, f, indent=4)
 
         print(f"✅ Created main wallets:")
         print(f"   SOL: {main_sol_kp.pubkey()}")
@@ -124,9 +137,9 @@ class PrepareSOLAsset:
     def format_float(self, val):
         return f"{val:.9f}".rstrip('0').rstrip('.')
 
-    def check_all_balances(self, case_file, wallet_info_summary):
-        # wallet_info_summary is now (wallet_name, main_address_dict, batch_wallets_list)
-        _, main_addresses, batch_wallets = wallet_info_summary
+    def check_all_balances(self, case_file, sol_wallet_info):
+        # sol_wallet_info is now (wallet_name, main_wallet_dict, batch_wallets_list)
+        _, main_wallet, batch_wallets = sol_wallet_info
         cases = GetTestCase(case_file).get_test_cases()
 
         # SOL Needs
@@ -145,7 +158,7 @@ class PrepareSOLAsset:
         print("="*80)
 
         # 1. Main Address Check
-        sol_addr = main_addresses['solana']['address']
+        sol_addr = main_wallet['address']
         balance, err = self._get_balance_http(sol_addr)
         sol_status = f"❌ Error: {err}" if err else (f"✅ {self.format_float(balance/10**9)} SOL" if balance >= total_sol_needed else f"⚠️ LOW ({self.format_float(balance/10**9)} SOL, Need {self.format_float(total_sol_needed/10**9)})")
 
@@ -175,7 +188,7 @@ class PrepareSOLAsset:
         for i, wallet in enumerate(batch_wallets):
             if i >= len(cases): break
             case = cases[i]
-            addr_str = wallet['solana']['address']
+            addr_str = wallet['address']
             balance, err = self._get_balance_http(addr_str)
             needed_sol = case['network_fee_raw'] + (0.005 * 10**9)
             sol_status = "❌ ERR" if err else ("✅ OK" if balance >= needed_sol else "⚠️ LOW")
@@ -207,11 +220,11 @@ class PrepareSOLAsset:
             print(f"❌ Invalid destination address: {destination_address}")
             return
 
-        if not os.path.exists("current_wallets.json"):
-            print("❌ No wallets found to sweep.")
+        if not os.path.exists("current_solana_wallets.json"):
+            print("❌ No Solana wallets found to sweep.")
             return
 
-        with open("current_wallets.json", "r") as f:
+        with open("current_solana_wallets.json", "r") as f:
             wallets = json.load(f)
 
         service = Client(self.url)
@@ -225,10 +238,10 @@ class PrepareSOLAsset:
         for wallet_set in wallets:
             # Collect all solana keypairs
             sol_kps = []
-            main_sol = wallet_set['main_wallet']['solana']
+            main_sol = wallet_set['main_wallet']
             sol_kps.append(Keypair.from_bytes(binascii.unhexlify(main_sol['private_key'])))
             for bw in wallet_set.get('batch_wallets', []):
-                sol_kps.append(Keypair.from_bytes(binascii.unhexlify(bw['solana']['private_key'])))
+                sol_kps.append(Keypair.from_bytes(binascii.unhexlify(bw['private_key'])))
 
             for kp in sol_kps:
                 addr_str = str(kp.pubkey())
@@ -300,7 +313,12 @@ class PrepareSOLAsset:
                 except Exception as e:
                     print(f"    ⚠️ SOL sweep failed for {addr_str[:8]}: {e}")
 
-def get_batch_wallets():
-    if not os.path.exists("current_wallets.json"): return []
-    with open("current_wallets.json", "r") as f: data = json.load(f)
+def get_batch_solana_wallets():
+    if not os.path.exists("current_solana_wallets.json"): return []
+    with open("current_solana_wallets.json", "r") as f: data = json.load(f)
+    return data[0].get("batch_wallets", [])
+
+def get_batch_evm_wallets():
+    if not os.path.exists("current_evm_wallets.json"): return []
+    with open("current_evm_wallets.json", "r") as f: data = json.load(f)
     return data[0].get("batch_wallets", [])
