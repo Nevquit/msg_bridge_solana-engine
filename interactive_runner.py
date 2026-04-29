@@ -209,7 +209,9 @@ def run_evm_to_sol(case_file):
             to_bytes = case['to_address'].encode('utf-8')
             print(f"{prefix} Sending {case['cross_amount(eth)']} {case['token_name']} from {batch_wallets[idx]['address'][:8]} to Solana {case['to_address'][:8]}...")
             tx_hash, _ = remote.send(priv_key, to_bytes, case['amount_raw'])
-            print(f"{prefix} ✅ Success! Hash: {tx_hash}")
+            # Ensure 0x prefix if not present (tx_hash.hex() usually doesn't have it)
+            formatted_hash = tx_hash if tx_hash.startswith('0x') else f"0x{tx_hash}"
+            print(f"{prefix} ✅ Success! Hash: {formatted_hash}")
         except Exception as e: print(f"{prefix} ❌ Error: {e}")
 
 def run():
