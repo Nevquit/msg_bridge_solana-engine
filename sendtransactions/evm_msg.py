@@ -21,11 +21,10 @@ class Erc20TokenRemote:
         # Build transaction
         nonce = self.w3.eth.get_transaction_count(account.address)
 
-        # The JS reference uses signedSc.send(to, amount, { gasLimit: 10000000 })
         txn = self.contract.functions.send(to_bytes, int(amount)).build_transaction({
             'from': account.address,
             'nonce': nonce,
-            'gas': 1000000, # Using a more reasonable default than 10M, but can be adjusted
+            'gas': 1000000,
             'gasPrice': self.w3.eth.gas_price
         })
 
@@ -42,19 +41,3 @@ class Erc20TokenRemote:
 
     def get_wmb_gateway(self):
         return self.contract.functions.wmbGateway().call()
-
-# Usage example (mirroring send() in the provided JS):
-# if __name__ == "__main__":
-#     # from config.js
-#     tokenTransferScAddr = '0x174BADB1B8b9248dAe0519C5C8f9fFd9aCb2E779'
-#     nodeUrl = "https://gwan-ssl.wandevs.org:46891"
-#     solUserATA = "rcMakHp2MwBYqYxXDpLa3A7QNt4Q7JdR7MneuPuzf2u"
-#
-#     # In Python, we need the private key or mnemonic
-#     # wallet = Account.from_mnemonic(words)
-#
-#     remote = Erc20TokenRemote(nodeUrl, tokenTransferScAddr)
-#     # receiptTo must be bytes in Python to match bytes in Solidity
-#     import base58
-#     to_bytes = base58.b58decode(solUserATA)
-#     # tx_hash, receipt = remote.send(private_key, to_bytes, 9)

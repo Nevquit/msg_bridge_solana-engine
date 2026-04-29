@@ -1,47 +1,61 @@
-# Solana Engine
+# Cross-Chain Message Bridge Runner
 
-A tool for generating Solana accounts and sending transactions with custom data (Memo), inspired by the `bridge_bitcoin-engine` project structure.
+This repository contains an interactive tool for running cross-chain message transactions between Solana and EVM networks.
 
 ## Features
 
-- **Account Generation**: Create multiple Solana accounts.
-- **Transactions**: Send SOL with custom data attachments using the Memo program.
-- **Interactive CLI**: Easy-to-use menu for all operations.
-
-## Installation
-
-1. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-## Usage
-
-Run the interactive runner:
-```bash
-python3 interactive_runner_v1.0.py
-```
-
-### 1. Create Accounts
-Generates a main account and multiple batch accounts based on the test case file. Keys are saved to `current_wallets.json` (which is ignored by git).
-
-### 2. Check Balance
-Fetches current SOL balances for all managed accounts.
-
-### 3. Run Transactions
-Executes transfers from batch accounts to target addresses with custom memo data.
-
-### 4. Message Cross-Chain
-Executes cross-chain message transfers using the WMB protocol.
-Run the message bridge runner:
-```bash
-python3 interactive_msg_cross.py
-```
+- **Directional Testing**: Choose between Solana -> EVM and EVM -> Solana directions.
+- **Modular Design**: Separate modules for Solana and EVM transaction logic.
+- **Wallet Management**: Unified wallet generation (Solana + EVM) derived from a single mnemonic.
+- **Case Management**: Test cases are organized by direction in subfolders.
+- **Interactive Menu**: Easy-to-use menu for creating wallets, checking balances, distributing funds, and running transactions.
 
 ## Project Structure
 
-- `utility/prepare_sol_asset.py`: Logic for account creation and balance checking.
-- `sendtransactions/sendtransaction.py`: Logic for Solana transaction building and broadcasting.
-- `interactive_runner_v1.0.py`: Main entry point.
-- `test/`: Unit tests.
-- `testcases/`: CSV files containing test cases.
+- `interactive_runner.py`: The main entry point for the interactive tool.
+- `sendtransactions/`:
+  - `solana_msg.py`: Logic for Solana -> EVM message transactions.
+  - `evm_msg.py`: Logic for EVM -> Solana message transactions.
+  - `sendtransaction.py`: Core Solana transaction utilities.
+- `utility/`:
+  - `prepare_sol_asset.py`: Wallet generation and asset management (SOL/Tokens).
+  - `interaction_utils.py`: Common CLI interaction helpers.
+- `testcases/`:
+  - `sol_to_evm/`: CSV files containing test cases for Solana to EVM.
+  - `evm_to_sol/`: CSV files containing test cases for EVM to Solana.
+- `config/`: Configuration files for RPCs, contract addresses, and ABIs.
+
+## Getting Started
+
+### Prerequisites
+
+- Python 3.7+
+- Install dependencies:
+  ```bash
+  pip install -r requirements.txt
+  ```
+
+### Configuration
+
+- Ensure `config/rpc.json` contains valid RPC URLs for your target networks.
+- Ensure `config/contract_accounts.json` has the correct program and contract addresses.
+
+### Usage
+
+1. Run the interactive runner:
+   ```bash
+   python interactive_runner.py
+   ```
+2. Select the Solana network (Mainnet-Beta or Devnet).
+3. Select the bridge direction (Solana -> EVM or EVM -> Solana).
+4. Select a test case file from the listed options.
+5. Use the menu to:
+   - **Create Wallets**: Generates a main wallet and batch wallets for testing. Credentials are saved in `current_wallets.json`.
+   - **Check Balances**: Verifies SOL and token balances for all generated wallets.
+   - **Distribute Funds**: Sends SOL and tokens from the main wallet to batch wallets.
+   - **Run Transactions**: Executes the cross-chain message transactions.
+   - **Sweep Assets**: Reclaims remaining SOL and tokens to a specified address.
+
+## Test Case Format
+
+Test cases are CSV files with specific columns depending on the direction. Refer to the existing files in `testcases/sol_to_evm/` and `testcases/evm_to_sol/` for examples.
