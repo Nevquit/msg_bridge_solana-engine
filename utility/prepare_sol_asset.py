@@ -370,7 +370,7 @@ class PrepareAssets:
                     'chainId': w3.eth.chain_id
                 }
                 signed_tx = w3.eth.account.sign_transaction(tx, main_account.key)
-                tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+                tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
                 print(f"  - [{i+1}] Sent 0.01 ETH to {dest_addr[:8]}... Hash: {tx_hash.hex()[:12]}")
                 nonce += 1
             except Exception as e: print(f"  - [{i+1}] ETH Fail: {e}")
@@ -387,7 +387,7 @@ class PrepareAssets:
                         'gasPrice': w3.eth.gas_price
                     })
                     signed_tx = w3.eth.account.sign_transaction(tx, main_account.key)
-                    tx_hash = w3.eth.send_raw_transaction(signed_tx.rawTransaction)
+                    tx_hash = w3.eth.send_raw_transaction(signed_tx.raw_transaction)
                     print(f"  - [{i+1}] Sent {case['token_name']} to {dest_addr[:8]}... Hash: {tx_hash.hex()[:12]}")
                     nonce += 1
                 except Exception as e: print(f"  - [{i+1}] Token Fail: {e}")
@@ -423,7 +423,7 @@ class PrepareAssets:
                         'chainId': w3.eth.chain_id
                     }
                     signed = w3.eth.account.sign_transaction(tx, acc.key)
-                    tx_hash = w3.eth.send_raw_transaction(signed.rawTransaction)
+                    tx_hash = w3.eth.send_raw_transaction(signed.raw_transaction)
                     print(f"  - Swept {w3.from_wei(balance-fee, 'ether')} ETH from {acc.address[:8]}...")
                 except Exception as e: print(f"  - Sweep Fail for {acc.address[:8]}: {e}")
 
