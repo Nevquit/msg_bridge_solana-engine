@@ -82,8 +82,18 @@ def main_menu(direction, case_file, network):
                 tx_data['instructions'].extend(ata_ixs)
                 tx_data['sender_kp'] = main_kp
                 sig, err = sign_and_send_transaction(tx_data, service)
-                if sig: print(f"    ✅ Batch Success! Signature: {sig}")
-                else: print(f"    ❌ Batch Fail: {err}")
+                if sig:
+                    print(f"    ✅ Batch Sent! Signature: {sig}")
+                    print("    ⏳ Waiting for confirmation...")
+                    from solana.rpc.commitment import Confirmed
+                    try:
+                        # Wait for confirmation before proceeding
+                        service.confirm_transaction(sig, commitment=Confirmed)
+                        print("    ✅ Transaction confirmed!")
+                    except Exception as e:
+                        print(f"    ⚠️ Confirmation wait error: {e}")
+                else:
+                    print(f"    ❌ Batch Fail: {err}")
 
             curr_recipients = []
             curr_ata_ixs = []
@@ -127,6 +137,9 @@ def main_menu(direction, case_file, network):
                     curr_recipients, curr_ata_ixs = [], []
 
             if curr_recipients: send_distribution_batch(curr_recipients, curr_ata_ixs)
+
+            print("\n🔍 Verifying updated balances...")
+            asset_preparer.check_all_balances(case_file, get_solana_wallet_info()[:3])
 
         elif choice == '4':
             if direction == "sol_to_evm":
