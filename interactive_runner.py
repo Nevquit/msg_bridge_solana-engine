@@ -10,7 +10,7 @@ from spl.token.constants import TOKEN_PROGRAM_ID
 from spl.token.instructions import get_associated_token_address, create_associated_token_account, transfer_checked, TransferCheckedParams
 
 from utility.prepare_sol_asset import PrepareAssets
-from utility.interaction_utils import get_network, get_direction, get_case_file, get_solana_wallet_info, get_evm_wallet_info
+from utility.interaction_utils import get_network, get_direction, get_case_file, get_solana_wallet_info, get_evm_wallet_info, get_confirmed_address
 from sendtransactions.sendtransaction import sign_and_send_transaction, build_transfer_tx, hex_to_pubkey, get_contracts
 from sendtransactions.solana_msg import solana_to_evm_msg
 from sendtransactions.evm_msg import Erc20TokenRemote
@@ -139,11 +139,13 @@ def main_menu(direction, case_file, network):
                 if res:
                     main_wallet = res[1]
                     payer_kp = Keypair.from_bytes(binascii.unhexlify(main_wallet['private_key']))
-                asset_preparer.sweep_sol_assets(input("👉 Destination Solana Address: ").strip(), payer_kp=payer_kp)
+                dest_addr = get_confirmed_address("👉 Destination Solana Address: ")
+                asset_preparer.sweep_sol_assets(dest_addr, payer_kp=payer_kp)
             else:
                 res = get_evm_wallet_info()
                 if res:
-                    asset_preparer.sweep_evm_assets(input("👉 Destination EVM Address: ").strip(), res[:3], case_file=case_file)
+                    dest_addr = get_confirmed_address("👉 Destination EVM Address: ")
+                    asset_preparer.sweep_evm_assets(dest_addr, res[:3], case_file=case_file)
 
         elif choice == '6': return
         elif choice == '7': sys.exit(0)
