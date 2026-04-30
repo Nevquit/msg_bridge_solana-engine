@@ -61,3 +61,14 @@ def get_evm_wallet_info():
     except Exception as e:
         print(f"❌ Error reading current_evm_wallets.json: {e}")
         return None
+
+def get_confirmed_address(prompt):
+    while True:
+        addr1 = input(prompt).strip()
+        if not addr1:
+            print("❌ Address cannot be empty.")
+            continue
+        addr2 = input("👉 Please confirm the address (input again): ").strip()
+        if addr1 == addr2:
+            return addr1
+        print("❌ Addresses do not match. Please try again.")
