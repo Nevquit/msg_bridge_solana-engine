@@ -55,7 +55,7 @@ def main_menu(direction, case_file, network):
         choice = input("👉 Choice: ").strip()
 
         if choice == '1':
-            asset_preparer.prepare_assets(create=True, batch_address_count=num_cases)
+            asset_preparer.prepare_assets(create=True)
 
         elif choice == '2':
             if check_wallet_coverage(case_file, direction):
