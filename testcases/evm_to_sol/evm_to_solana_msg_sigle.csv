@@ -1,0 +1,2 @@
+id,token_name,from_chain,to_chain,bridge_type,to_address,from_token_address,to_token_address,from_token_decimals,to_token_decimals,cross_amount(eth),gas_limit,node_url
+1,USDC,Wanchain,Solana,EVM_TO_SOL_MSG,4Rpf4woNEWmXTt4Uar4gEhzokui2kH4CAsfAMo2QogyY,0x174BADB1B8b9248dAe0519C5C8f9fFd9aCb2E779,4qyZxqVyE4JsjoW3jgQFqcmuygUUM1hMNUASobcabgC8,6,6,0.000009,1000000,https://gwan-ssl.wandevs.org:46891
